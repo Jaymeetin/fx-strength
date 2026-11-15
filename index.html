@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Currency Strength Board</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1116" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="FX Strength">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Layout: controls, best-pair hero with its ICT checklist, widest-gap pair list, watch panel, 8-currency strength bars, full 28-pair table. */
+  :root {
+    --bg: #f3f5f8;
+    --surface: #ffffff;
+    --ink: #14181f;
+    --muted: #5b6573;
+    --line: #dde2e9;
+    --accent: #1d5fd6;
+    --bull: #0c7a52;
+    --bull-bg: #dff3ea;
+    --bear: #bb2f38;
+    --bear-bg: #fbe3e4;
+    --flat: #8a5f00;
+    --flat-bg: #f8edcf;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-num: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1116;
+      --surface: #151a21;
+      --ink: #e7ebf0;
+      --muted: #94a0af;
+      --line: #252d37;
+      --accent: #6c9fff;
+      --bull: #3ecf8e;
+      --bull-bg: #123628;
+      --bear: #ff7b7b;
+      --bear-bg: #3b1a1d;
+      --flat: #e8bf5a;
+      --flat-bg: #3a2f12;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.5;
+    padding-block: 24px 48px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+  h1 { font-size: 1.5rem; line-height: 1.2; margin: 0; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+  h2 { font-size: 0.8rem; margin: 0; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .sub { margin: 4px 0 0; color: var(--muted); max-width: 64ch; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+
+  .controls { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: end; }
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .field label, .check { font-size: 0.85rem; color: var(--muted); }
+  input[type="password"], input[type="number"] {
+    font: inherit; font-family: var(--font-num); color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 6px; padding: 9px 10px; width: 100%; min-width: 0;
+  }
+  .check { display: flex; align-items: center; gap: 8px; }
+  .check input { width: 16px; height: 16px; accent-color: var(--accent); flex: none; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; grid-column: 1 / -1; }
+  button { font: inherit; font-weight: 500; border-radius: 6px; padding: 9px 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  @media (prefers-color-scheme: dark) { button.primary { color: #0d1116; } }
+  button.small { padding: 5px 10px; font-size: 0.8rem; }
+  button:disabled { opacity: 0.55; cursor: progress; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .statusbar { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: 0.85rem; color: var(--muted); }
+  .mode { font-family: var(--font-num); font-size: 0.75rem; letter-spacing: 0.06em; padding: 3px 8px; border-radius: 4px; background: var(--line); color: var(--muted); }
+  .mode.live { background: var(--bull-bg); color: var(--bull); }
+  #status.bad { color: var(--bear); }
+  #status.warn { color: var(--flat); }
+
+  .pill { display: inline-block; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; letter-spacing: 0.02em; white-space: nowrap; }
+  .pill.bullish, .pill.buy, .pill.confirmed { background: var(--bull-bg); color: var(--bull); }
+  .pill.bearish, .pill.sell, .pill.invalid { background: var(--bear-bg); color: var(--bear); }
+  .pill.ranging, .pill.neutral, .pill.forming, .pill.partial { background: var(--flat-bg); color: var(--flat); }
+  .pill.none { background: var(--line); color: var(--muted); }
+
+  .hero { display: flex; flex-direction: column; gap: 14px; }
+  .hero-top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+  .hero-label { font-size: 0.8rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); width: 100%; }
+  .hero-pair { font-size: 2rem; font-weight: 600; letter-spacing: 0.01em; line-height: 1.1; }
+  .hero-why { color: var(--muted); font-family: var(--font-num); font-size: 0.9rem; }
+  .hero-why b { color: var(--ink); font-weight: 500; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
+
+  .ict-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  .ict-title { font-weight: 600; }
+  .ict-note { color: var(--muted); font-size: 0.9rem; margin: 6px 0 0; }
+  .checks { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; }
+  .checks li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); align-items: start; }
+  .chip { font-size: 0.72rem; font-weight: 600; text-align: center; padding: 2px 0; border-radius: 4px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .chip.pass { background: var(--bull-bg); color: var(--bull); }
+  .chip.fail { background: var(--bear-bg); color: var(--bear); }
+  .chip.wait { background: var(--flat-bg); color: var(--flat); }
+  .checks b { font-weight: 600; }
+  .checks span.d { display: block; color: var(--muted); font-size: 0.88rem; overflow-wrap: anywhere; }
+  .levels { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
+  .lv { background: var(--bg); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .lv span { display: block; font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .lv b { font-family: var(--font-num); font-weight: 500; font-size: 0.9rem; overflow-wrap: anywhere; }
+
+  .strength { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .srow { display: grid; grid-template-columns: 40px minmax(0, 1fr) 34px; gap: 10px; align-items: center; }
+  .ccy { font-family: var(--font-num); font-weight: 500; }
+  .track { position: relative; height: 18px; background: var(--bg); border-radius: 4px; }
+  .track::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px solid var(--line); }
+  .bar { position: absolute; top: 2px; bottom: 2px; border-radius: 3px; }
+  .bar.pos { left: 50%; background: var(--bull); }
+  .bar.neg { right: 50%; background: var(--bear); }
+  .sval { font-family: var(--font-num); text-align: right; font-size: 0.9rem; }
+  .sval.pos { color: var(--bull); }
+  .sval.neg { color: var(--bear); }
+  .cap { color: var(--muted); font-size: 0.85rem; margin: 6px 0 0; }
+
+  .toplist { display: flex; flex-direction: column; margin-top: 8px; }
+  .toprow { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+  .toprow:first-child { border-top: 0; }
+  .toprow.sel { background: var(--bg); margin: 0 -8px; padding-inline: 8px; border-radius: 8px; border-top-color: transparent; }
+  .trl { display: flex; align-items: center; gap: 8px; flex: 1 1 200px; min-width: 0; flex-wrap: wrap; }
+  .tpair { font-weight: 600; }
+  .tmeta { flex: 1 1 100%; order: 3; font-family: var(--font-num); font-size: 0.82rem; color: var(--muted); overflow-wrap: anywhere; }
+  .tctl { display: flex; align-items: center; gap: 12px; }
+
+  .alerts { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
+  .alerts li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--line); font-size: 0.88rem; overflow-wrap: anywhere; }
+  .alerts time { font-family: var(--font-num); color: var(--muted); font-size: 0.8rem; }
+  .plan-title { margin: 18px 0 0; font-weight: 600; }
+  .alarmset { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+  .inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.85rem; color: var(--muted); }
+  .inline input[type="number"] { width: 5.5em; }
+
+  .tablewrap { overflow-x: auto; margin-top: 10px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 7px 10px; border-top: 1px solid var(--line); white-space: nowrap; }
+  th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; border-top: 0; }
+  td.n { font-family: var(--font-num); }
+  td.up { color: var(--bull); } td.down { color: var(--bear); }
+
+  details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  summary { cursor: pointer; font-weight: 600; }
+  details ul { margin: 10px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; color: var(--muted); }
+  .note { font-size: 0.8rem; color: var(--muted); }
+  .err { color: var(--bear); }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Currency Strength Board</h1>
+    <p class="sub">Scores all 28 pairs on H4 against the 21 EMA, ranks the eight currencies and finds the pairs with the widest gap. It then watches the pairs you pick and checks them for ICT confirmation every 15 minutes.</p>
+  </header>
+
+  <section class="card controls" aria-label="Settings">
+    <div class="field">
+      <label for="apikey">Twelve Data API key</label>
+      <input id="apikey" type="password" autocomplete="off" placeholder="Paste your free key">
+    </div>
+    <div class="field">
+      <label for="emalen">EMA length</label>
+      <input id="emalen" type="number" min="5" max="100" value="21" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label for="balance">Account balance (USD)</label>
+      <input id="balance" type="number" min="1" value="1000" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="riskpct">Risk per trade (%)</label>
+      <input id="riskpct" type="number" min="0.05" max="5" step="0.05" value="0.5" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="rr">Reward for every 1 of risk</label>
+      <input id="rr" type="number" min="1" max="10" step="0.5" value="2" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="fbpips">Stop distance when no setup (pips)</label>
+      <input id="fbpips" type="number" min="3" max="200" value="15" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label class="check"><input id="closedonly" type="checkbox" checked> Ignore the unfinished H4 candle</label>
+      <label class="check"><input id="pdonly" type="checkbox" checked> Count only sweeps of the previous day high or low</label>
+    </div>
+    <div class="actions">
+      <button id="all" class="primary" type="button">Check all 28 pairs</button>
+      <button id="go" type="button">Quick check</button>
+    </div>
+  </section>
+
+  <div class="statusbar">
+    <span id="mode" class="mode">NOT LOADED</span>
+    <span id="status" role="status">Paste your key and tap Check all 28 pairs. It takes about 3 minutes on the free plan.</span>
+  </div>
+
+  <section class="card hero" aria-label="Best pair">
+    <div class="hero-top" id="hero"></div>
+    <hr>
+    <div id="ict"></div>
+  </section>
+
+  <section class="card" aria-label="Top pairs">
+    <h2>Pairs with the widest gap</h2>
+    <p class="cap">Tick Watch on up to 5 pairs. The top 3 are ticked for you after each scan until you change them yourself.</p>
+    <div class="toplist" id="toplist"></div>
+  </section>
+
+  <section class="card" aria-label="Watch">
+    <h2>Watch</h2>
+    <p class="cap">Sounds an alarm when a pair reaches a strong bias, and checks the ticked pairs for ICT confirmation just after every 15-minute candle closes. Keep this page open.</p>
+    <div class="alarmset">
+      <label class="inline"><input id="aon" type="checkbox" checked> Alarm when a pair's bias gap reaches <input id="athr" type="number" min="2" max="14" value="10" inputmode="numeric" aria-label="Gap threshold"> of 14</label>
+      <label class="check"><input id="asound" type="checkbox" checked> Play a sound with every alarm</label>
+      <label class="check"><input id="wrescan" type="checkbox" checked> Re-scan all 28 pairs after each H4 close</label>
+      <label class="check"><input id="wkz" type="checkbox"> ICT alerts only inside the London and New York killzones</label>
+    </div>
+    <div class="actions" style="margin-top:12px">
+      <button id="wbtn" class="primary" type="button">Start watching</button>
+      <button id="atest" type="button">Test alarm</button>
+    </div>
+    <p class="cap" id="wstatus">Not watching.</p>
+    <ul class="alerts" id="alerts"></ul>
+  </section>
+
+  <section class="card" aria-label="Currency strength">
+    <h2>Currency strength</h2>
+    <p class="cap" id="strcap"></p>
+    <div class="strength" id="strength"></div>
+  </section>
+
+  <details>
+    <summary>All 28 pairs</summary>
+    <div class="tablewrap"><table id="alltable"></table></div>
+  </details>
+
+  <details>
+    <summary>How the scores and the ICT check work</summary>
+    <ul>
+      <li><b>Pair bias:</b> bullish means the last H4 close is above the EMA and the EMA is rising; bearish is the reverse. Ranging and neutral pairs score 0.</li>
+      <li><b>Currency score:</b> a bullish pair gives its base currency +1 and its quote currency −1. A bearish pair does the opposite. Each currency ends between −7 and +7.</li>
+      <li><b>Best pair:</b> the pair whose base and quote scores are furthest apart. A positive gap is a buy, a negative gap is a sell.</li>
+      <li><b>Liquidity sweep:</b> within the last 48 candles, price wicks beyond the previous New York day's high or low (or, if you untick the box, a recent swing point) against the bias, then closes back inside.</li>
+      <li><b>USD strength:</b> the USD score from the 28-pair scan stands in for the dollar index. It is a check on USD pairs and context on the rest.</li>
+      <li><b>Trade plan:</b> shown for every pair you check. With a confirmed or forming setup, entry is the middle of the fair value gap and the stop is one pip beyond the sweep. Without one, it uses the current price and your fixed stop distance. The target is your reward for every 1 of risk (2 means 1:2), and the plan shows stop and target in pips.</li>
+      <li><b>Position size:</b> balance × risk % ÷ (stop distance in pips × pip value), with the pip value converted to USD from the latest majors. A stop wider than 20 pips is flagged.</li>
+      <li><b>Strong-pair alarm:</b> after each scan, any pair whose gap reaches your threshold sounds an alarm once, and again only if it drops below the threshold and comes back.</li>
+      <li><b>Structure shift:</b> after the sweep, a candle closes beyond the last swing point in the direction of the bias.</li>
+      <li><b>Fair value gap:</b> a three-candle gap in the bias direction, with a large middle candle. It becomes the entry zone.</li>
+      <li><b>Retrace:</b> price has pulled back into that gap. Premium or discount and the London or New York killzone are shown as context.</li>
+      <li><b>Check all 28 pairs:</b> one tap downloads the seven majors, then the 21 crosses in three batches of 7, one batch per minute (about 3 minutes, 28 requests). Results appear after the first batch, with the crosses derived from the majors, and update as each batch lands.</li>
+      <li><b>Quick check:</b> downloads only the seven majors (7 requests) and derives the crosses from them.</li>
+      <li><b>Watching:</b> each check downloads one pair's 15-minute candles (1 request per pair). Three pairs checked every 15 minutes use about 288 requests a day, and a re-scan after each H4 close adds about 168, against the free plan's 800.</li>
+    </ul>
+  </details>
+
+  <p class="note">Your API key stays in this browser and is sent only to api.twelvedata.com. The free plan allows 8 requests a minute and 800 a day. Mobile browsers often pause background tabs, so watching works best on a computer or with the screen kept on. ICT is discretionary, so this is a rule-based approximation of its core ideas and not a trade signal or advice. Forex trading carries substantial risk.</p>
+</div>
+
+<script>
+/* ---------- pure logic (no DOM) ---------- */
+var CCY = ["EUR", "GBP", "AUD", "NZD", "USD", "CAD", "CHF", "JPY"];
+var MAJORS = ["EUR/USD", "GBP/USD", "AUD/USD", "NZD/USD", "USD/CAD", "USD/CHF", "USD/JPY"];
+var PAIRS = [];
+(function () {
+  for (var i = 0; i < CCY.length; i++) for (var j = i + 1; j < CCY.length; j++) {
+    PAIRS.push({ base: CCY[i], quote: CCY[j], sym: CCY[i] + "/" + CCY[j] });
+  }
+})();
+var H4 = 4 * 3600 * 1000, M15 = 15 * 60 * 1000;
+
+function ema(values, len) {
+  var k = 2 / (len + 1), out = [], prev = 0, i;
+  for (i = 0; i < len; i++) prev += values[i];
+  prev /= len;
+  for (i = 0; i < len - 1; i++) out.push(null);
+  out.push(prev);
+  for (i = len; i < values.length; i++) { prev = values[i] * k + prev * (1 - k); out.push(prev); }
+  return out;
+}
+function pipSize(sym) { return sym.indexOf("JPY") !== -1 ? 0.01 : 0.0001; }
+function decimals(sym) { return sym.indexOf("JPY") !== -1 ? 3 : 5; }
+
+function analyze(sym, candles, len, closedOnly) {
+  var c = candles.slice();
+  var last = c[c.length - 1];
+  var forming = !!last && last.t + H4 > Date.now();
+  if (closedOnly && forming) c.pop();
+  if (c.length < len + 15) return { error: "Not enough candles (" + c.length + ")" };
+  var closes = c.map(function (x) { return x.c; });
+  var e = ema(closes, len);
+  var i = c.length - 1;
+  var price = closes[i], cur = e[i];
+  var slope = cur - e[i - 3];
+  var crosses = 0, j;
+  for (j = i - 11; j <= i; j++) {
+    if (Math.sign(closes[j] - e[j]) !== Math.sign(closes[j - 1] - e[j - 1])) crosses++;
+  }
+  var flat = Math.abs(slope) / cur < 0.00005;
+  var above = price > cur;
+  var bias;
+  if (crosses >= 3) bias = "ranging";
+  else if (above && slope > 0 && !flat) bias = "bullish";
+  else if (!above && slope < 0 && !flat) bias = "bearish";
+  else bias = "neutral";
+  return { bias: bias, price: price, ema: cur, pips: (price - cur) / pipSize(sym), time: c[i].t, forming: closedOnly ? false : forming };
+}
+
+function buildUsd(raw) {
+  var i, maps = [];
+  for (i = 0; i < MAJORS.length; i++) {
+    if (!raw[MAJORS[i]] || !raw[MAJORS[i]].length) return { error: "Missing data for " + MAJORS[i] };
+    maps.push(new Map(raw[MAJORS[i]].map(function (x) { return [x.t, x.c]; })));
+  }
+  var ts = raw[MAJORS[0]].map(function (x) { return x.t; }).filter(function (t) {
+    return maps.every(function (m) { return m.has(t); });
+  });
+  if (ts.length < 40) return { error: "The majors share too few candles (" + ts.length + ")" };
+  function col(sym) { var m = maps[MAJORS.indexOf(sym)]; return ts.map(function (t) { return m.get(t); }); }
+  function inv(a) { return a.map(function (x) { return 1 / x; }); }
+  var v = { USD: ts.map(function () { return 1; }), EUR: col("EUR/USD"), GBP: col("GBP/USD"), AUD: col("AUD/USD"), NZD: col("NZD/USD"),
+            CAD: inv(col("USD/CAD")), CHF: inv(col("USD/CHF")), JPY: inv(col("USD/JPY")) };
+  return { ts: ts, v: v };
+}
+function pairCandles(u, base, quote) {
+  return u.ts.map(function (t, i) { return { t: t, c: u.v[base][i] / u.v[quote][i] }; });
+}
+
+/* A pair uses its own downloaded candles when raw has them, otherwise it is derived from the seven majors. */
+function scoreAll(raw, len, closedOnly) {
+  var u = buildUsd(raw);
+  if (u.error) return u;
+  var score = {}, real = 0;
+  CCY.forEach(function (c) { score[c] = 0; });
+  var rows = PAIRS.map(function (p) {
+    var own = raw[p.sym] && raw[p.sym].length > len + 15;
+    var src = own ? "real" : "derived";
+    if (own) real++;
+    var a = analyze(p.sym, own ? raw[p.sym] : pairCandles(u, p.base, p.quote), len, closedOnly);
+    if (!a.error) {
+      var d = a.bias === "bullish" ? 1 : a.bias === "bearish" ? -1 : 0;
+      score[p.base] += d; score[p.quote] -= d;
+    }
+    return { pair: p, a: a, src: src };
+  });
+  return { rows: rows, score: score, real: real };
+}
+
+function ranking(score) {
+  var list = PAIRS.map(function (p) {
+    var g = score[p.base] - score[p.quote];
+    return { pair: p, gap: g, action: g > 0 ? "BUY" : "SELL", spread: Math.abs(score[p.base]) + Math.abs(score[p.quote]) };
+  }).filter(function (x) { return x.gap !== 0; });
+  list.sort(function (a, b) { return (Math.abs(b.gap) - Math.abs(a.gap)) || (b.spread - a.spread); });
+  return list;
+}
+
+/* ---- ICT approximation on 15-minute candles ---- */
+function findSwings(c, k) {
+  var H = [], L = [], i, j, h, l;
+  for (i = k; i < c.length - k; i++) {
+    h = true; l = true;
+    for (j = 1; j <= k; j++) {
+      if (!(c[i].h > c[i - j].h && c[i].h > c[i + j].h)) h = false;
+      if (!(c[i].l < c[i - j].l && c[i].l < c[i + j].l)) l = false;
+    }
+    if (h) H.push({ i: i, p: c[i].h });
+    if (l) L.push({ i: i, p: c[i].l });
+  }
+  return { H: H, L: L };
+}
+
+function nyDate(t) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(t));
+}
+/* High and low of the previous New York calendar day, from 15-minute candles. */
+function prevDay(c) {
+  if (!c.length) return null;
+  var today = nyDate(c[c.length - 1].t), by = {}, order = [], i, d;
+  for (i = 0; i < c.length; i++) {
+    d = nyDate(c[i].t);
+    if (!by[d]) { by[d] = { h: -Infinity, l: Infinity, n: 0 }; order.push(d); }
+    if (c[i].h > by[d].h) by[d].h = c[i].h;
+    if (c[i].l < by[d].l) by[d].l = c[i].l;
+    by[d].n++;
+  }
+  var k = order.indexOf(today);
+  if (k < 1) return null;
+  var p = by[order[k - 1]];
+  return p.n >= 40 ? { h: p.h, l: p.l, date: order[k - 1] } : null;
+}
+
+/* Long-side logic. A short setup is the same logic run on price-inverted candles. pdl is the previous day low in that space. */
+function analyzeLong(c, pdl, pdOnly) {
+  var n = c.length, k = 2, i, j, s;
+  var sw = findSwings(c, k);
+  var out = { sweep: null, mss: null, fvg: null, state: null, target: null, pos: null, last: c[n - 1].c };
+  var lookback = Math.max(k + 2, n - 48);
+  var hasPdl = pdl !== null && pdl !== undefined;
+  for (j = n - 1; j >= lookback && !out.sweep; j--) {
+    if (hasPdl && c[j].l < pdl && c[j].c > pdl) { out.sweep = { j: j, level: pdl, extreme: c[j].l, t: c[j].t, kind: "pd" }; break; }
+    if (pdOnly) continue;
+    for (s = sw.L.length - 1; s >= 0; s--) {
+      var L = sw.L[s];
+      if (L.i + k > j) continue;
+      if (c[j].l < L.p && c[j].c > L.p) { out.sweep = { j: j, level: L.p, extreme: c[j].l, t: c[j].t, kind: "swing" }; break; }
+    }
+  }
+  if (out.sweep) {
+    var sj = out.sweep.j, prevH = null;
+    for (s = sw.H.length - 1; s >= 0; s--) { if (sw.H[s].i + k <= sj) { prevH = sw.H[s]; break; } }
+    if (prevH) {
+      for (j = sj; j < n; j++) {
+        if (c[j].c > prevH.p) { out.mss = { m: j, level: prevH.p, t: c[j].t }; break; }
+      }
+    }
+    var body = 0, cnt = 0;
+    for (i = Math.max(0, n - 50); i < n; i++) { body += Math.abs(c[i].c - c[i].o); cnt++; }
+    var avg = body / cnt;
+    for (i = n - 3; i >= Math.max(1, sj - 1); i--) {
+      if (c[i].h < c[i + 2].l && Math.abs(c[i + 1].c - c[i + 1].o) > 1.2 * avg) {
+        out.fvg = { i: i, lo: c[i].h, hi: c[i + 2].l, t: c[i + 1].t }; break;
+      }
+    }
+  }
+  var last = c[n - 1].c;
+  if (out.fvg) out.state = last >= out.fvg.lo && last <= out.fvg.hi ? "inside" : last > out.fvg.hi ? "waiting" : "through";
+  var rs = Math.max(0, n - 60), rh = -Infinity, rl = Infinity;
+  for (i = rs; i < n; i++) { if (c[i].h > rh) rh = c[i].h; if (c[i].l < rl) rl = c[i].l; }
+  out.pos = rh > rl ? (last - rl) / (rh - rl) : 0.5;
+  var tgt = null;
+  for (s = 0; s < sw.H.length; s++) { if (sw.H[s].p > last && (tgt === null || sw.H[s].p < tgt)) tgt = sw.H[s].p; }
+  out.target = tgt === null ? rh : tgt;
+  return out;
+}
+
+function killzone(date) {
+  var parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "numeric", hour12: false }).formatToParts(date);
+  var h = parseInt(parts.filter(function (p) { return p.type === "hour"; })[0].value, 10) % 24;
+  var m = parseInt(parts.filter(function (p) { return p.type === "minute"; })[0].value, 10);
+  var name = null;
+  if (h >= 2 && h < 5) name = "London";
+  else if (h >= 7 && h < 10) name = "New York";
+  return { name: name, label: String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + " New York time" };
+}
+
+function ictAnalyze(c15, action, sym, opts) {
+  opts = opts || {};
+  var c = c15.slice();
+  var last = c[c.length - 1];
+  if (last && last.t + M15 > Date.now()) c.pop();
+  if (c.length < 80) return { error: "Not enough 15-minute candles (" + c.length + ")" };
+  var buy = action === "BUY";
+  var w = buy ? c : c.map(function (x) { return { t: x.t, o: -x.o, h: -x.l, l: -x.h, c: -x.c }; });
+  var pd = prevDay(c);
+  var r = analyzeLong(w, pd ? (buy ? pd.l : -pd.h) : null, !!opts.pdOnly);
+  function m(p) { return p === null || p === undefined ? p : (buy ? p : -p); }
+  var res = { buy: buy, sym: sym, sweep: null, mss: null, fvg: null, state: r.state, last: m(r.last), target: m(r.target) };
+  res.pd = pd;
+  if (r.sweep) res.sweep = { level: m(r.sweep.level), extreme: m(r.sweep.extreme), t: r.sweep.t, kind: r.sweep.kind };
+  if (r.mss) res.mss = { level: m(r.mss.level), t: r.mss.t };
+  if (r.fvg) res.fvg = { lo: buy ? r.fvg.lo : -r.fvg.hi, hi: buy ? r.fvg.hi : -r.fvg.lo, t: r.fvg.t };
+  res.posPct = (buy ? r.pos : 1 - r.pos) * 100;
+  res.aligned = r.pos < 0.5;
+  res.lastCandle = c[c.length - 1].t;
+  res.stale = Date.now() - c[c.length - 1].t > 3 * 3600 * 1000;
+  res.kz = killzone(new Date());
+  if (res.fvg && res.sweep) {
+    var mid = (res.fvg.lo + res.fvg.hi) / 2;
+    var stop = buy ? res.sweep.extreme - pipSize(sym) : res.sweep.extreme + pipSize(sym);
+    var risk = Math.abs(mid - stop), reward = buy ? res.target - mid : mid - res.target;
+    res.stop = stop;
+    res.rr = risk > 0 && reward > 0 ? reward / risk : null;
+  }
+  var core = !!(res.sweep && res.mss && res.fvg);
+  var have = [res.sweep, res.mss, res.fvg].filter(Boolean).length;
+  if (core && res.state === "inside") res.verdict = { key: "confirmed", text: "Confirmed", note: "Sweep, structure shift and gap are in place, and price is inside the entry zone." };
+  else if (core && res.state === "waiting") res.verdict = { key: "forming", text: "Setup forming", note: "The sequence is complete. Wait for price to " + (buy ? "pull back down" : "rally back up") + " into the gap." };
+  else if (core) res.verdict = { key: "invalid", text: "Invalidated", note: "Price closed through the gap, so this setup no longer holds." };
+  else if (have > 0) res.verdict = { key: "partial", text: "Partial", note: "Some steps are present but the full sequence is not." };
+  else res.verdict = { key: "none", text: "No confirmation", note: opts.pdOnly ? "The previous day's " + (buy ? "low" : "high") + " was not swept in the last 48 candles." : "No sweep, structure shift or gap was found in the last 48 candles." };
+  return res;
+}
+</script>
+
+<script>
+/* ---------- app (DOM, data, rendering, watch) ---------- */
+(function () {
+  "use strict";
+  var S = {
+    raw: null, res: null, rank: [], ict: null, token: 0, stop: false, running: false, byPair: {}, scanBoundary: 0, usd: null, alarmed: {},
+    watch: { on: false, syms: {}, manual: false, timer: null, ticker: null, next: 0, busy: false, last: 0, lastKey: {}, log: [], note: "" }
+  };
+  var ledger = [];
+  var BASE_TITLE = document.title;
+
+  function $(s) { return document.querySelector(s); }
+  function store(k, v) {
+    try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; }
+    return null;
+  }
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function setStatus(t, kind) { var s = $("#status"); s.textContent = t; s.className = kind || ""; }
+  function setMode(live) { var m = $("#mode"); m.textContent = live ? "LIVE · TWELVE DATA" : "NOT LOADED"; m.className = "mode" + (live ? " live" : ""); }
+  function getLen() { var n = parseInt($("#emalen").value, 10); return isFinite(n) ? Math.min(100, Math.max(5, n)) : 21; }
+  function sInt(n) { return n > 0 ? "+" + n : n < 0 ? "−" + Math.abs(n) : "0"; }
+  function pad(x) { return String(x).padStart(2, "0"); }
+  function fmtUtc(t) { var d = new Date(t); return pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) + " UTC"; }
+  function fmtDay(t) { var d = new Date(t); return d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" + pad(d.getUTCDate()) + " " + pad(d.getUTCHours()) + ":00 UTC"; }
+  function fmtLocal(t) { var d = new Date(t); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function px(sym, p) { return p.toFixed(decimals(sym)); }
+
+  /* ----- rate limit: free plan allows 8 credits per minute ----- */
+  async function throttle(n, label) {
+    for (;;) {
+      var now = Date.now();
+      ledger = ledger.filter(function (e) { return now - e.t < 61000; });
+      var used = ledger.reduce(function (a, e) { return a + e.n; }, 0);
+      if (used + n <= 8) { ledger.push({ t: now, n: n }); return; }
+      var wait = ledger[0].t + 61000 - now;
+      if (S.stop) return;
+      setStatus((label ? label + " " : "") + "Waiting " + Math.ceil(wait / 1000) + " s for the free plan's 8-requests-a-minute limit.", "warn");
+      await sleep(Math.min(wait + 200, 1000));
+    }
+  }
+  function parseCandle(v) { return { t: Date.parse(v.datetime.replace(" ", "T") + "Z"), o: +v.open, h: +v.high, l: +v.low, c: +v.close }; }
+  async function getJson(symbols, interval, size) {
+    var key = $("#apikey").value.trim();
+    var url = "https://api.twelvedata.com/time_series?symbol=" + encodeURIComponent(symbols) + "&interval=" + interval +
+      "&outputsize=" + size + "&timezone=UTC&apikey=" + encodeURIComponent(key);
+    var res = await fetch(url);
+    return res.json();
+  }
+
+  /* ----- rendering ----- */
+  function renderEmpty() {
+    var h = $("#hero"); h.textContent = "";
+    h.appendChild(el("div", "hero-label", "Best pair right now"));
+    h.appendChild(el("div", "hero-why", "Paste your Twelve Data key and tap Check all 28 pairs. The pair with the widest gap appears here."));
+    renderIct();
+    $("#strcap").textContent = "Scores appear after the first scan.";
+    $("#strength").textContent = "";
+    var tl = $("#toplist"); tl.textContent = ""; tl.appendChild(el("div", "hero-why", "Nothing to show yet."));
+    $("#alltable").textContent = "";
+  }
+
+  function renderHero(rank) {
+    var h = $("#hero");
+    h.textContent = "";
+    h.appendChild(el("div", "hero-label", "Best pair right now"));
+    if (!rank.length) { h.appendChild(el("div", "hero-why", "No pair has a clear bias. Every currency scores the same.")); return; }
+    var t = rank[0], p = t.pair, sc = S.res.score;
+    h.appendChild(el("span", "pill " + t.action.toLowerCase(), t.action));
+    h.appendChild(el("span", "hero-pair", p.base + "/" + p.quote));
+    var why = el("span", "hero-why");
+    var strong = sc[p.base] > sc[p.quote] ? p.base : p.quote, weak = strong === p.base ? p.quote : p.base;
+    why.appendChild(el("b", "", strong + " " + sInt(sc[strong])));
+    why.appendChild(document.createTextNode(" is strongest of the two, "));
+    why.appendChild(el("b", "", weak + " " + sInt(sc[weak])));
+    why.appendChild(document.createTextNode(" weakest. Gap " + Math.abs(t.gap) + " of 14."));
+    h.appendChild(why);
+  }
+
+  function renderStrength() {
+    var sc = S.res.score, box = $("#strength");
+    box.textContent = "";
+    var order = CCY.slice().sort(function (a, b) { return sc[b] - sc[a]; });
+    order.forEach(function (c) {
+      var row = el("div", "srow");
+      row.appendChild(el("span", "ccy", c));
+      var tr = el("div", "track"), bar = el("span", "bar " + (sc[c] >= 0 ? "pos" : "neg"));
+      bar.style.width = (Math.abs(sc[c]) / 7 * 50) + "%";
+      tr.appendChild(bar);
+      row.appendChild(tr);
+      row.appendChild(el("span", "sval " + (sc[c] > 0 ? "pos" : sc[c] < 0 ? "neg" : ""), sInt(sc[c])));
+      box.appendChild(row);
+    });
+    $("#strcap").textContent = "Strongest " + order[0] + " (" + sInt(sc[order[0]]) + "), weakest " + order[order.length - 1] + " (" + sInt(sc[order[order.length - 1]]) + ").";
+  }
+
+  function listRows() {
+    var rank = S.rank, rows = rank.slice(0, 6), seen = {};
+    rows.forEach(function (r) { seen[r.pair.sym] = 1; });
+    Object.keys(S.watch.syms).forEach(function (sym) {
+      if (seen[sym]) return;
+      var f = rank.filter(function (r) { return r.pair.sym === sym; })[0];
+      if (f) rows.push(f);
+    });
+    return rows;
+  }
+
+  function renderTop() {
+    var box = $("#toplist"), sc = S.res.score;
+    box.textContent = "";
+    var rows = listRows();
+    if (!rows.length) { box.appendChild(el("div", "hero-why", "Nothing to rank.")); return; }
+    rows.forEach(function (r) {
+      var sym = r.pair.sym;
+      var sel = S.ict && S.ict.sym === sym;
+      var row = el("div", "toprow" + (sel ? " sel" : ""));
+      var left = el("div", "trl");
+      left.appendChild(el("span", "tpair", r.pair.base + "/" + r.pair.quote));
+      left.appendChild(el("span", "pill " + r.action.toLowerCase(), r.action));
+      var bp = S.byPair[sym];
+      if (bp && bp.action === r.action && bp.res && !bp.res.error) left.appendChild(el("span", "pill " + bp.res.verdict.key, bp.res.verdict.text));
+      row.appendChild(left);
+      row.appendChild(el("span", "tmeta", r.pair.base + " " + sInt(sc[r.pair.base]) + " vs " + r.pair.quote + " " + sInt(sc[r.pair.quote]) + " · gap " + Math.abs(r.gap)));
+      var ctl = el("div", "tctl");
+      var lab = el("label", "check"), cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = !!S.watch.syms[sym];
+      cb.addEventListener("change", function () {
+        S.watch.manual = true;
+        if (cb.checked) {
+          if (Object.keys(S.watch.syms).length >= 5) { cb.checked = false; watchNote("You can watch up to 5 pairs."); return; }
+          S.watch.syms[sym] = true;
+        } else delete S.watch.syms[sym];
+        renderWatch();
+      });
+      lab.appendChild(cb); lab.appendChild(document.createTextNode("Watch"));
+      ctl.appendChild(lab);
+      var b = el("button", "small", sel && S.ict.loading ? "Checking" : "Check ICT");
+      b.type = "button";
+      b.disabled = !!(sel && S.ict.loading);
+      b.addEventListener("click", function () { runIct(r); });
+      ctl.appendChild(b);
+      row.appendChild(ctl);
+      box.appendChild(row);
+    });
+  }
+
+  function renderTable() {
+    var t = $("#alltable");
+    t.textContent = "";
+    var thead = el("thead"), hr = el("tr");
+    ["Pair", "Bias", "Close", "From EMA", "Data"].forEach(function (x) { hr.appendChild(el("th", "", x)); });
+    thead.appendChild(hr); t.appendChild(thead);
+    var tb = el("tbody");
+    S.res.rows.forEach(function (r) {
+      var tr = el("tr");
+      tr.appendChild(el("td", "", r.pair.base + "/" + r.pair.quote));
+      if (r.a.error) { var td = el("td", "err", r.a.error); td.colSpan = 4; tr.appendChild(td); tb.appendChild(tr); return; }
+      var td1 = el("td"); td1.appendChild(el("span", "pill " + r.a.bias, r.a.bias.charAt(0).toUpperCase() + r.a.bias.slice(1)));
+      tr.appendChild(td1);
+      tr.appendChild(el("td", "n", px(r.pair.sym, r.a.price)));
+      tr.appendChild(el("td", "n " + (r.a.pips > 0 ? "up" : "down"), (r.a.pips > 0 ? "+" : "") + r.a.pips.toFixed(1) + " pips"));
+      tr.appendChild(el("td", "", r.src === "real" ? "Downloaded" : "Derived"));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+  }
+
+  /* Plan from entry and stop: pips, target at the chosen reward for 1 of risk, and lot size from balance and risk %.
+     Pip value is converted to USD from the latest majors. */
+  function makePlan(sym, buy, entry, stop) {
+    var rr = parseFloat($("#rr").value);
+    if (!isFinite(rr) || rr <= 0) rr = 2;
+    var dist = Math.abs(entry - stop);
+    if (!(dist > 0)) return null;
+    var pip = pipSize(sym), stopPips = dist / pip;
+    var plan = { entry: entry, stop: stop, rr: rr, stopPips: stopPips, targetPips: stopPips * rr, target: buy ? entry + rr * dist : entry - rr * dist, wide: stopPips > 20 };
+    var bal = parseFloat($("#balance").value), rp = parseFloat($("#riskpct").value);
+    if (isFinite(bal) && isFinite(rp) && bal > 0 && rp > 0 && S.usd) {
+      var pipUsd = pip * 100000 * S.usd[sym.split("/")[1]];
+      plan.riskUsd = bal * rp / 100;
+      plan.rewardUsd = plan.riskUsd * rr;
+      plan.lots = Math.floor(plan.riskUsd / (stopPips * pipUsd) * 100) / 100;
+    }
+    return plan;
+  }
+
+  /* USD score from the scan stands in for the dollar index. */
+  function usdCheck(list, sym, action) {
+    var sc = S.res.score.USD, parts = sym.split("/");
+    if (parts.indexOf("USD") === -1) {
+      check(list, "wait", "USD strength", "USD scores " + sInt(sc) + " of 7. This pair does not include USD, so it is context only.");
+      return;
+    }
+    var wantStrong = (action === "BUY") === (parts[0] === "USD");
+    var ok = wantStrong ? sc > 0 : sc < 0;
+    check(list, ok ? "pass" : "fail", "USD strength", "USD scores " + sInt(sc) + " of 7, which " + (ok ? "supports" : "does not support") + " this " + action.toLowerCase() + ".");
+  }
+
+  function check(list, status, title, detail) {
+    var li = el("li");
+    li.appendChild(el("span", "chip " + status, status === "pass" ? "Yes" : status === "fail" ? "No" : "Wait"));
+    var d = el("div"); d.appendChild(el("b", "", title)); d.appendChild(el("span", "d", detail));
+    li.appendChild(d); list.appendChild(li);
+  }
+
+  function renderIct() {
+    var box = $("#ict"), s = S.ict;
+    box.textContent = "";
+    if (!s) {
+      box.appendChild(el("div", "ict-title", "ICT check"));
+      box.appendChild(el("p", "ict-note", S.res ? "Pick a pair below and tap Check ICT." : "The ICT check for the best pair appears here after the scan."));
+      return;
+    }
+    var head = el("div", "ict-head");
+    head.appendChild(el("span", "ict-title", "ICT check · " + s.sym + " " + s.action.toLowerCase() + " · 15 min"));
+    box.appendChild(head);
+    if (s.loading) { box.appendChild(el("p", "ict-note", "Loading 15-minute candles…")); return; }
+    if (s.error) { box.appendChild(el("p", "ict-note err", s.error)); return; }
+    var r = s.res;
+    if (r.error) { box.appendChild(el("p", "ict-note err", r.error)); return; }
+    head.appendChild(el("span", "pill " + r.verdict.key, r.verdict.text));
+    box.appendChild(el("p", "ict-note", r.verdict.note + (r.stale ? " The last candle is from " + fmtDay(r.lastCandle) + ", so the market may be closed." : "")));
+    var sym = s.sym, list = el("ul", "checks"), buy = r.buy;
+    var what = r.sweep && r.sweep.kind === "pd" ? "the previous day " + (buy ? "low" : "high") : (buy ? "a swing low" : "a swing high");
+    if (r.sweep) check(list, "pass", "Liquidity sweep", "Price took out " + px(sym, r.sweep.level) + " (" + what + ") at " + fmtUtc(r.sweep.t) + " and closed back inside.");
+    else check(list, "fail", "Liquidity sweep", "No sweep of " + (r.pdOnlyOn ? "the previous day " + (buy ? "low" : "high") : "a recent " + (buy ? "swing low" : "swing high")) + " in the last 48 candles.");
+    if (r.pd) check(list, r.sweep && r.sweep.kind === "pd" ? "pass" : "wait", "Previous day level", "Previous day " + (buy ? "low " + px(sym, r.pd.l) : "high " + px(sym, r.pd.h)) + (r.sweep && r.sweep.kind === "pd" ? ", swept." : ", not swept in the last 48 candles."));
+    else check(list, "wait", "Previous day level", "Not enough candles to find the previous day's high and low.");
+    if (r.mss) check(list, "pass", "Structure shift", "A candle closed " + (buy ? "above " : "below ") + px(sym, r.mss.level) + " at " + fmtUtc(r.mss.t) + ".");
+    else check(list, "fail", "Structure shift", r.sweep ? "No close " + (buy ? "above" : "below") + " the last swing point since the sweep." : "Needs a sweep first.");
+    if (r.fvg) check(list, "pass", "Fair value gap", "Gap between " + px(sym, r.fvg.lo) + " and " + px(sym, r.fvg.hi) + ", formed at " + fmtUtc(r.fvg.t) + ".");
+    else check(list, "fail", "Fair value gap", r.sweep ? "No displacement gap in the bias direction since the sweep." : "Needs a sweep first.");
+    if (r.fvg) {
+      if (r.state === "inside") check(list, "pass", "Retrace to the gap", "Price is inside the gap at " + px(sym, r.last) + ".");
+      else if (r.state === "waiting") check(list, "wait", "Retrace to the gap", "Price is at " + px(sym, r.last) + ", " + (buy ? "above" : "below") + " the gap. Wait for a pullback.");
+      else check(list, "fail", "Retrace to the gap", "Price closed through the gap at " + px(sym, r.last) + ".");
+    }
+    check(list, r.aligned ? "pass" : "fail", buy ? "Discount" : "Premium", "Price sits " + Math.round(r.posPct) + "% of the way up the last 60-candle range. " + (r.aligned ? "That favors this direction." : "That works against this direction."));
+    check(list, r.kz.name ? "pass" : "wait", "Killzone", r.kz.name ? "Now inside the " + r.kz.name + " killzone (" + r.kz.label + ")." : "Outside the London and New York killzones (" + r.kz.label + ").");
+    usdCheck(list, sym, s.action);
+    box.appendChild(list);
+
+    /* Trade plan: from the setup when one exists, otherwise from the current price and the fixed stop distance. */
+    var useSetup = !!(r.fvg && r.sweep && (r.verdict.key === "confirmed" || r.verdict.key === "forming"));
+    var fb = parseFloat($("#fbpips").value);
+    if (!isFinite(fb) || fb <= 0) fb = 15;
+    var entry = useSetup ? (r.fvg.lo + r.fvg.hi) / 2 : r.last;
+    var stp = useSetup ? r.stop : (buy ? entry - fb * pipSize(sym) : entry + fb * pipSize(sym));
+    var plan = makePlan(sym, buy, entry, stp);
+    if (plan) {
+      var rrTxt = plan.rr % 1 === 0 ? String(plan.rr) : plan.rr.toFixed(1);
+      box.appendChild(el("div", "plan-title", "Trade plan · " + (buy ? "buy" : "sell") + " · 1:" + rrTxt));
+      box.appendChild(el("p", "ict-note", useSetup
+        ? "Entry is the middle of the fair value gap, and the stop sits one pip beyond the sweep."
+        : "No setup is confirmed yet, so this uses the current price and a stop of " + fb + " pips. Treat it as a guide until the setup forms."));
+      var lv = el("div", "levels");
+      var items = [["Entry", px(sym, plan.entry)]];
+      if (useSetup) items.push(["Entry zone", px(sym, r.fvg.lo) + " – " + px(sym, r.fvg.hi)]);
+      items.push(["Stop", px(sym, plan.stop) + " · " + plan.stopPips.toFixed(1) + " pips"]);
+      items.push(["Target 1:" + rrTxt, px(sym, plan.target) + " · " + plan.targetPips.toFixed(1) + " pips"]);
+      if (plan.lots !== undefined) {
+        items.push(["Position size", plan.lots >= 0.01 ? plan.lots.toFixed(2) + " lots" : "Below 0.01 lots"]);
+        items.push(["Money at risk", "$" + plan.riskUsd.toFixed(2)]);
+        items.push(["Money at target", "$" + plan.rewardUsd.toFixed(2)]);
+      }
+      if (useSetup && r.target) items.push(["Nearest swing level", px(sym, r.target) + (r.rr ? " · " + r.rr.toFixed(1) + "R" : "")]);
+      items.forEach(function (x) {
+        var d = el("div", "lv"); d.appendChild(el("span", "", x[0])); d.appendChild(el("b", "", x[1])); lv.appendChild(d);
+      });
+      box.appendChild(lv);
+      if (plan.wide) box.appendChild(el("p", "ict-note", "The stop is wider than 20 pips, the cap the reference model uses. Consider waiting for a tighter setup."));
+    }
+  }
+
+  function watchNote(msg) { S.watch.note = msg; renderWatch(); }
+  function renderWatch() {
+    var w = S.watch, st = $("#wstatus"), n = Object.keys(w.syms).length;
+    if (!w.on) st.textContent = w.note || (S.res ? (n ? n + " pair" + (n > 1 ? "s" : "") + " ticked. Not watching yet." : "No pairs ticked. Start watching to get the strong-pair alarm only.") : "Run a scan first, then start watching.");
+    else if (w.busy) st.textContent = n ? "Checking " + n + " pair" + (n > 1 ? "s" : "") + " now…" : "Checking now…";
+    else {
+      var left = Math.max(0, Math.round((w.next - Date.now()) / 1000));
+      st.textContent = "Watching " + (n ? n + " pair" + (n > 1 ? "s" : "") : "for strong pairs") + ". Next check in " + pad(Math.floor(left / 60)) + ":" + pad(left % 60) + (w.last ? ", last check " + fmtLocal(w.last) : "") + ".";
+    }
+    var ul = $("#alerts");
+    ul.textContent = "";
+    w.log.forEach(function (a) {
+      var li = el("li");
+      li.appendChild(el("time", "", fmtLocal(a.t)));
+      li.appendChild(el("span", "pill " + a.key, a.label));
+      li.appendChild(el("span", "", a.text));
+      ul.appendChild(li);
+    });
+  }
+
+  function renderAll() {
+    S.rank = ranking(S.res.score);
+    renderHero(S.rank); renderStrength(); renderTop(); renderTable(); renderIct(); renderWatch();
+  }
+
+  /* ----- ICT fetch ----- */
+  async function fetchIct(r) {
+    await throttle(1);
+    var data = await getJson(r.pair.sym, "15min", 300);
+    if (data.status === "error" || !data.values) throw new Error(data.message || "No 15-minute data returned");
+    var pdOnly = $("#pdonly").checked;
+    var res = ictAnalyze(data.values.map(parseCandle).reverse(), r.action, r.pair.sym, { pdOnly: pdOnly });
+    res.pdOnlyOn = pdOnly;
+    return res;
+  }
+
+  async function runIct(r) {
+    var tok = ++S.token, sym = r.pair.sym;
+    S.ict = { sym: sym, action: r.action, loading: true };
+    renderIct(); renderTop();
+    try {
+      var res = await fetchIct(r);
+      if (tok !== S.token) return;
+      S.ict = { sym: sym, action: r.action, res: res };
+      S.byPair[sym] = { action: r.action, res: res, at: Date.now() };
+    } catch (err) {
+      if (tok !== S.token) return;
+      S.ict = { sym: sym, action: r.action, error: "Could not load the 15-minute candles: " + err.message };
+    }
+    renderIct(); renderTop();
+  }
+
+  /* ----- scanning ----- */
+  function applyRaw(raw) {
+    var res = scoreAll(raw, getLen(), $("#closedonly").checked);
+    if (res.error) { setStatus(res.error, "bad"); return false; }
+    S.res = res; S.ict = null;
+    var u = buildUsd(raw);
+    if (!u.error) { S.usd = {}; CCY.forEach(function (c) { S.usd[c] = u.v[c][u.v[c].length - 1]; }); }
+    renderAll();
+    return true;
+  }
+  function defaultWatch() {
+    if (!S.watch.manual) {
+      S.watch.syms = {};
+      S.rank.slice(0, 3).forEach(function (r) { S.watch.syms[r.pair.sym] = true; });
+    }
+    renderTop(); renderWatch();
+  }
+  function setRunning(on, canStop) {
+    S.running = on;
+    $("#go").disabled = on;
+    var b = $("#all");
+    b.textContent = on ? (canStop ? "Stop" : "Working…") : "Check all 28 pairs";
+    b.disabled = on && !canStop;
+  }
+  function needKey() {
+    var key = $("#apikey").value.trim();
+    if (!key) { setStatus("Paste a Twelve Data API key first.", "warn"); return false; }
+    store("td_key", key);
+    return true;
+  }
+  function rawBatch(data, syms, raw, strictFirst) {
+    var missing = 0;
+    syms.forEach(function (sym) {
+      var d = data[sym];
+      if (!d || d.status === "error" || !d.values) {
+        if (strictFirst) throw new Error(sym + ": " + ((d && d.message) || "no data returned"));
+        missing++; return;
+      }
+      raw[sym] = d.values.map(parseCandle).reverse();
+    });
+    return missing;
+  }
+
+  /* One tap: majors first, then the 21 crosses in batches of 7, one batch per minute (free plan limit). */
+  async function loadAll(auto) {
+    if (S.running) { S.stop = true; return; }
+    if (!needKey()) return;
+    S.stop = false; setRunning(true, true);
+    var started = Date.now();
+    var crosses = PAIRS.map(function (p) { return p.sym; }).filter(function (s) { return MAJORS.indexOf(s) === -1; });
+    var batches = [MAJORS, crosses.slice(0, 7), crosses.slice(7, 14), crosses.slice(14, 21)];
+    var raw = {}, missing = 0, size = Math.min(500, Math.max(120, getLen() * 4));
+    try {
+      for (var b = 0; b < batches.length && !S.stop; b++) {
+        var label = "Batch " + (b + 1) + " of " + batches.length + ".";
+        await throttle(7, label);
+        if (S.stop) break;
+        setStatus("Downloading batch " + (b + 1) + " of " + batches.length + "…");
+        var data = await getJson(batches[b].join(","), "4h", size);
+        if (data && data.status === "error" && !data.values) throw new Error(data.message || "Request failed");
+        missing += rawBatch(data, batches[b], raw, b === 0);
+        S.raw = raw; setMode(true);
+        if (!applyRaw(raw)) break;
+        defaultWatch();
+        setStatus("Batch " + (b + 1) + " of " + batches.length + " done. " + Object.keys(raw).length + " of 28 pairs downloaded, the rest derived for now.");
+      }
+      if (S.stop) {
+        setStatus("Stopped. " + Object.keys(raw).length + " of 28 pairs downloaded, the rest derived from the majors.", "warn");
+      } else if (S.res) {
+        S.scanBoundary = Math.floor(started / H4) * H4;
+        afterScan();
+        var tail = S.res.real + " of 28 pairs downloaded" + (missing ? ", " + missing + " unavailable and derived instead" : "") + ".";
+        if (!auto && S.rank.length) {
+          setStatus("All batches done. " + tail + " Checking the best pair on 15 minutes…");
+          await runIct(S.rank[0]);
+        }
+        setStatus("Updated " + new Date().toLocaleTimeString() + ". " + tail);
+      }
+    } catch (err) {
+      setStatus("Could not load live data: " + err.message, "bad");
+    } finally {
+      S.stop = false; setRunning(false);
+    }
+  }
+
+  async function loadQuick() {
+    if (S.running || !needKey()) return;
+    setRunning(true, false);
+    try {
+      setStatus("Loading H4 candles for the seven majors…");
+      await throttle(7, "");
+      var data = await getJson(MAJORS.join(","), "4h", Math.min(500, Math.max(120, getLen() * 4)));
+      if (data && data.status === "error" && !data.values) throw new Error(data.message || "Request failed");
+      var raw = {};
+      rawBatch(data, MAJORS, raw, true);
+      S.raw = raw; setMode(true);
+      if (applyRaw(raw)) {
+        defaultWatch();
+        S.scanBoundary = Math.floor(Date.now() / H4) * H4;
+        afterScan();
+        if (S.rank.length) await runIct(S.rank[0]);
+        setStatus("Updated " + new Date().toLocaleTimeString() + ". Majors downloaded, crosses derived.");
+      }
+    } catch (err) {
+      setStatus("Could not load live data: " + err.message, "bad");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  /* ----- alarms ----- */
+  var audio = null;
+  function ensureAudio() {
+    try {
+      if (!audio && typeof window !== "undefined") { var AC = window.AudioContext || window.webkitAudioContext; if (AC) audio = new AC(); }
+      if (audio && audio.state === "suspended") audio.resume();
+    } catch (e) { /* ignore */ }
+  }
+  function beep(kind, force) {
+    if (!force && !$("#asound").checked) return;
+    ensureAudio();
+    if (!audio) return;
+    var seq = kind === "sell" ? [700, 560, 420] : kind === "confirmed" ? [880, 880, 1180] : [520, 700, 880];
+    try {
+      seq.forEach(function (f, i) {
+        var o = audio.createOscillator(), g = audio.createGain(), t0 = audio.currentTime + i * 0.24;
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.exponentialRampToValueAtTime(0.3, t0 + 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+        o.connect(g); g.connect(audio.destination);
+        o.start(t0); o.stop(t0 + 0.22);
+      });
+    } catch (e) { /* ignore */ }
+  }
+  function askNotify() {
+    try { if (typeof Notification !== "undefined" && Notification.permission === "default") Notification.requestPermission(); } catch (e) { /* ignore */ }
+  }
+  function pushAlert(key, label, text, quiet) {
+    S.watch.log.unshift({ t: Date.now(), key: key, label: label, text: text });
+    S.watch.log = S.watch.log.slice(0, 8);
+    document.title = "● " + label + " " + text.split(",")[0];
+    try { if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(label + ": " + text.split(",")[0], { body: text }); } catch (e) { /* ignore */ }
+    if (!quiet) beep(key);
+    renderWatch();
+  }
+  /* Fires once per pair and direction when its gap reaches the threshold, and again only after it has dropped below and returned. */
+  function checkStrong() {
+    var strong = {};
+    if ($("#aon").checked) {
+      var thr = parseInt($("#athr").value, 10);
+      thr = isFinite(thr) ? Math.min(14, Math.max(2, thr)) : 10;
+      S.rank.forEach(function (r) { if (Math.abs(r.gap) >= thr) strong[r.pair.sym + r.action] = r; });
+    }
+    Object.keys(S.alarmed).forEach(function (k) { if (!strong[k]) delete S.alarmed[k]; });
+    var fresh = Object.keys(strong).filter(function (k) { return !S.alarmed[k]; }).map(function (k) { S.alarmed[k] = true; return strong[k]; });
+    if (!fresh.length) return;
+    var sc = S.res.score;
+    fresh.slice(0, 3).reverse().forEach(function (r) {
+      var p = r.pair;
+      pushAlert(r.action.toLowerCase(), "Strong " + r.action, p.base + "/" + p.quote + ", gap " + Math.abs(r.gap) + " of 14 (" + p.base + " " + sInt(sc[p.base]) + ", " + p.quote + " " + sInt(sc[p.quote]) + ")", true);
+    });
+    beep(fresh[0].action.toLowerCase());
+    setStatus("Alarm: " + fresh.length + " pair" + (fresh.length > 1 ? "s" : "") + " with a strong bias.", "warn");
+  }
+  function afterScan() { checkStrong(); }
+
+  /* ----- watch mode ----- */
+  function maybeAlert(item, res) {
+    var sym = item.pair.sym, key = sym + item.action, v = res.verdict.key;
+    if (v !== "confirmed" && v !== "forming") { delete S.watch.lastKey[key]; return; }
+    if (S.watch.lastKey[key] === v) return;
+    if ($("#wkz").checked && !res.kz.name) return;
+    S.watch.lastKey[key] = v;
+    var text = item.pair.base + "/" + item.pair.quote + " " + item.action + (res.fvg ? ", entry zone " + px(sym, res.fvg.lo) + " – " + px(sym, res.fvg.hi) : "");
+    pushAlert(v, res.verdict.text, text, false);
+  }
+
+  async function checkWatched() {
+    var syms = Object.keys(S.watch.syms);
+    for (var i = 0; i < syms.length && S.watch.on; i++) {
+      var item = S.rank.filter(function (r) { return r.pair.sym === syms[i]; })[0];
+      if (!item) continue;
+      var res = null, err = null;
+      try { res = await fetchIct(item); } catch (e) { err = e.message; }
+      S.byPair[item.pair.sym] = { action: item.action, res: res, err: err, at: Date.now() };
+      if (res && !res.error) maybeAlert(item, res);
+      if (S.ict && S.ict.sym === item.pair.sym && !S.ict.loading) {
+        S.ict = err ? { sym: item.pair.sym, action: item.action, error: "Could not load the 15-minute candles: " + err } : { sym: item.pair.sym, action: item.action, res: res };
+        renderIct();
+      }
+      renderTop(); renderWatch();
+    }
+  }
+
+  function schedule() {
+    clearTimeout(S.watch.timer);
+    S.watch.next = Math.ceil((Date.now() + 1000) / M15) * M15 + 15000;
+    S.watch.timer = setTimeout(tick, Math.max(1000, S.watch.next - Date.now()));
+  }
+
+  async function tick() {
+    if (!S.watch.on) return;
+    S.watch.busy = true; renderWatch();
+    try {
+      if ($("#wrescan").checked && !S.running && Math.floor(Date.now() / H4) * H4 > S.scanBoundary && $("#apikey").value.trim()) {
+        await loadAll(true);
+      }
+      await checkWatched();
+    } catch (e) { /* keep watching */ }
+    S.watch.busy = false; S.watch.last = Date.now();
+    if (S.watch.on) schedule();
+    renderWatch();
+  }
+
+  function stopWatch() {
+    S.watch.on = false; S.watch.busy = false;
+    clearTimeout(S.watch.timer); clearInterval(S.watch.ticker);
+    $("#wbtn").textContent = "Start watching";
+    renderWatch();
+  }
+
+  async function startWatch() {
+    if (S.watch.on) { stopWatch(); return; }
+    if (!S.res) { watchNote("Run a scan first, then start watching."); return; }
+    S.watch.note = "";
+    ensureAudio(); askNotify();
+    S.watch.on = true; S.watch.busy = true;
+    $("#wbtn").textContent = "Stop watching";
+    S.watch.ticker = setInterval(renderWatch, 1000);
+    renderWatch();
+    await checkWatched();
+    S.watch.busy = false; S.watch.last = Date.now();
+    if (S.watch.on) schedule();
+    renderWatch();
+  }
+
+  function rescore() {
+    if (S.running || !S.raw) return;
+    if (applyRaw(S.raw)) { defaultWatch(); if (S.rank.length) runIct(S.rank[0]); }
+  }
+
+  function reIct() {
+    if (!S.ict || !S.rank.length) return;
+    var item = S.rank.filter(function (r) { return r.pair.sym === S.ict.sym; })[0];
+    if (item) runIct(item);
+  }
+  $("#all").addEventListener("click", function () { ensureAudio(); return loadAll(false); });
+  $("#go").addEventListener("click", function () { ensureAudio(); return loadQuick(); });
+  $("#wbtn").addEventListener("click", startWatch);
+  $("#atest").addEventListener("click", function () { ensureAudio(); askNotify(); beep("buy", true); });
+  $("#pdonly").addEventListener("change", reIct);
+  ["#balance", "#riskpct", "#rr", "#fbpips"].forEach(function (id) { $(id).addEventListener("input", renderIct); });
+
+  /* Remember settings between visits (never the API response data). */
+  var SAVED = ["balance", "riskpct", "rr", "fbpips", "athr", "emalen", "closedonly", "pdonly", "aon", "asound", "wrescan", "wkz"];
+  SAVED.forEach(function (id) {
+    var node = $("#" + id), v = store("td_s_" + id);
+    if (v !== null && v !== undefined) { if (node.type === "checkbox") node.checked = v === "1"; else node.value = v; }
+    node.addEventListener("change", function () { store("td_s_" + id, node.type === "checkbox" ? (node.checked ? "1" : "0") : node.value); });
+  });
+  try { if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register("sw.js"); } catch (e) { /* offline install is optional */ }
+  $("#emalen").addEventListener("change", rescore);
+  $("#closedonly").addEventListener("change", rescore);
+  try { window.addEventListener("focus", function () { document.title = BASE_TITLE; }); } catch (e) { /* ignore */ }
+
+  var saved = store("td_key");
+  if (saved) $("#apikey").value = saved;
+  setMode(false);
+  renderEmpty();
+  renderWatch();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "Currency Strength Board",
+  "short_name": "FX Strength",
+  "description": "Scores all 28 forex pairs on H4 against the 21 EMA, ranks the eight currencies and checks the best pairs for ICT setups.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d1116",
+  "theme_color": "#0d1116",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
